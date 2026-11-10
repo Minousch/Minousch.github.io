@@ -1,0 +1,37 @@
+name: Publish FBTG release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fbtg-release-staging
+          persist-credentials: false
+      - name: Upload Windows release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          test "$RELEASE_TAG" = "v$version"
+          test -s "FBTG-Einblender-${version}-Setup.exe"
+          test -s "FBTG-Einblender-${version}-portable.exe"
+          test -s latest.yml
+          grep -Fq "FBTG-Einblender-${version}-Setup.exe" latest.yml
+          gh release upload "$RELEASE_TAG" \
+            "FBTG-Einblender-${version}-Setup.exe" \
+            "FBTG-Einblender-${version}-portable.exe" \
+            latest.yml --clobber
